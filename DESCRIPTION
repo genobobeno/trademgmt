@@ -1,0 +1,13 @@
+Package: trademgmt
+Title: Trade Planning
+Version: 0.0.0.9000
+Authors@R: person('Eugene', 'Geis', email = 'eugene.geis@gmail.com', role = c('cre', 'aut'))
+Description: This package enables you to analyze two things. First, your growth expectations, and second, your risk management.
+License: MIT + file LICENSE
+Imports: 
+    config,
+    golem,
+    shiny
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
