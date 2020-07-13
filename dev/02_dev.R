@@ -27,6 +27,7 @@ golem::add_module( name = "GrowthRisk" ) # Name of the module
 ## Add helper functions ----
 ## Creates ftc_* and utils_*
 golem::add_fct( "expGrowth" ) 
+golem::add_fct( "timeForGrowth" ) 
 golem::add_fct( "risk" ) 
 golem::add_utils( "trim" )
 

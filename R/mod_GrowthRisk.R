@@ -50,9 +50,9 @@ mod_GrowthRiskBD_ui <- function(id){
                                           DT::dataTableOutput(ns("dailyIncomeTab"))
                                  ),
                                  tabPabel(title="Trade Plan",
-                                          numericInput(ns("numTrades"),"How many trades do you plan to trade each week?",value = 5,step=1,min = 1,max=25),
-                                          sliderInput(ns("percentGain"),"What's your expected gain in each trade (%)?",value = 20,step = 1,min = 1,max=100),
-                                          sliderInput(ns("percentWager"),"How much of your account do you want to use in each trade (%)?",value = 10,step = 1,min = 1,max=100),
+                                          uiOutput(ns("dNumTrades")), #numericInput(ns("numTrades"),"How many trades do you plan to trade each week?",value = 5,step=1,min = 1,max=25),
+                                          uiOutput(ns("dPercentGain")), #sliderInput(ns("percentGain"),"What's your expected gain in each trade (%)?",value = 20,step = 1,min = 1,max=100),
+                                          uiOutput(ns("dPercentWager")), #sliderInput(ns("percentWager"),"How much of your account do you want to use in each trade (%)?",value = 10,step = 1,min = 1,max=100),
                                           uiOutput(ns("tradeMessage")), # h4(txt)
                                           DT::dataTableOutput(ns("tradePlan"))
                                           )
@@ -60,9 +60,11 @@ mod_GrowthRiskBD_ui <- function(id){
           shinydashboard::box(title = "The Math:",width = 4,#height = "250px",
                               radioButtons(ns("dayWeek"),label = "Plot by Day or Week?",choices = list("Day"=1,"Week"=2),selected = 1),
                               renderPlot(ns("accountGrowth")), #Account Size vs. Time
-                              renderPlot(ns("tradeSize")), #
-                              
+                              renderPlot(ns("tradeSize")) #
           ),
+          shinydashboard::box(title = "Save Data?",width = 3,
+                              uiOutput(ns("dEmail")), #textInput(ns("email"),"Enter Email to Save Your Analysis (optional))
+          )
           
         ),
         
@@ -100,8 +102,9 @@ mod_GrowthRisk_server <- function(input, output, session, r){
   r$expectedGrowth<-c(15,25)
   r$weeklyIncomeGoal<-5000  
   r$friday<-TRUE
-  input$numTrades<-5
-  input$percentGain<-20
+  r$numTrades<-5
+  r$percentGain<-20
+  r$percentWager<-10
   
   output$dFriday<-renderUI({
     checkboxInput(ns("friday"),label = "Do you intend to trade on Fridays?",value = r$friday)
@@ -162,16 +165,28 @@ mod_GrowthRisk_server <- function(input, output, session, r){
                                                                scroller = TRUE,
                                                                scrollX = TRUE),rownames = FALSE)
   
-  observe({
-    winGain<-input$numTrades*input$percentGain/10$
-    
+  output$dNumTrades<- renderUI({
+    numericInput(ns("numTrades"),"How many trades do you plan to trade each week?",value = r$numTrades,step=1,min = 1,max=25)
+  })
+  output$dPercentGain<- renderUI({
+    sliderInput(ns("percentGain"),"What's your expected gain in each trade (%)?",value = r$percentGain,step = 1,min = 1,max=100)
+  })
+  output$dPercentWager<- renderUI({
+    sliderInput(ns("percentWager"),"How much of your account do you want to use in each trade (%)?",value = r$percentWager,step = 1,min = 1,max=100)
   })
   
-  numericInput(ns("numTrades"),"How many trades do you plan to trade each week?",value = 5,step=1,min = 1,max=25),
-  sliderInput(ns("percentGain"),"What's your expected gain in each trade (%)?",value = 20,step = 1,min = 1,max=100),
-  sliderInput(ns("percentWager"),"How much of your account do you want to use in each trade (%)?",value = 10,step = 1,min = 1,max=100),
-  uiOutput(ns("tradeMessage")), # h4(txt)
-  DT::dataTableOutput(ns("tradePlan"))
+  observe({
+    winGain<-input$numTrades*input$percentGain/100
+    input$percentWager*input$accountSize
+    
+    r$tradePlan<-data.frame()
+  })
+  
+  output$tradeMessage<- renderUI({
+    txt<-paste()
+    h4(txt)
+  })
+  DT::renderDataTable(r$tradePlan)
   
 
     
