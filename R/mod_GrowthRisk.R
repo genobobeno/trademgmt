@@ -49,7 +49,7 @@ mod_GrowthRiskBD_ui <- function(id){
                                           uiOutput("dLowHigh2"), #radioButtons(ns("lowHigh2"),label = "Do you want low or high win rate estimates?",choices = list(""))
                                           DT::dataTableOutput(ns("dailyIncomeTab"))
                                  ),
-                                 tabPabel(title="Trade Plan",
+                                 tabPanel(title="Trade Plan",
                                           uiOutput(ns("dNumTrades")), #numericInput(ns("numTrades"),"How many trades do you plan to trade each week?",value = 5,step=1,min = 1,max=25),
                                           uiOutput(ns("dPercentGain")), #sliderInput(ns("percentGain"),"What's your expected gain in each trade (%)?",value = 20,step = 1,min = 1,max=100),
                                           uiOutput(ns("dPercentWager")), #sliderInput(ns("percentWager"),"How much of your account do you want to use in each trade (%)?",value = 10,step = 1,min = 1,max=100),
@@ -60,7 +60,7 @@ mod_GrowthRiskBD_ui <- function(id){
           shinydashboard::box(title = "The Math:",width = 4,#height = "250px",
                               radioButtons(ns("dayWeek"),label = "Plot by Day or Week?",choices = list("Day"=1,"Week"=2),selected = 1),
                               renderPlot(ns("accountGrowth")), #Account Size vs. Time
-                              renderPlot(ns("tradeSize")) #
+                              renderPlot(ns("tradeSize")) # Trade Size vs. Number of Trades, lines = Target Percent Gains
           ),
           shinydashboard::box(title = "Save Data?",width = 3,
                               uiOutput(ns("dEmail")), #textInput(ns("email"),"Enter Email to Save Your Analysis (optional))
@@ -165,9 +165,9 @@ mod_GrowthRisk_server <- function(input, output, session, r){
                                                                scroller = TRUE,
                                                                scrollX = TRUE),rownames = FALSE)
   
-  output$dNumTrades<- renderUI({
-    numericInput(ns("numTrades"),"How many trades do you plan to trade each week?",value = r$numTrades,step=1,min = 1,max=25)
-  })
+  # output$dNumTrades<- renderUI({
+  #   numericInput(ns("numTrades"),"How many trades do you plan to trade each week?",value = r$numTrades,step=1,min = 1,max=25)
+  # })
   output$dPercentGain<- renderUI({
     sliderInput(ns("percentGain"),"What's your expected gain in each trade (%)?",value = r$percentGain,step = 1,min = 1,max=100)
   })
@@ -175,18 +175,22 @@ mod_GrowthRisk_server <- function(input, output, session, r){
     sliderInput(ns("percentWager"),"How much of your account do you want to use in each trade (%)?",value = r$percentWager,step = 1,min = 1,max=100)
   })
   
+  ###### Calculate Number of Trades required to reach goal.
   observe({
-    winGain<-input$numTrades*input$percentGain/100
-    input$percentWager*input$accountSize
-    
-    r$tradePlan<-data.frame()
+    gainRange<-round(input$percentGain*c(0.75,1,1.25))
+    tradeSize<-input$percentWager*input$accountSize
+    perTradeProfit<-gainRange/100*tradeSize
+    r$tradePlan<-data.frame(paste0(gainRange[1],"%")=r$weeklyIncomeTable$Gain[1]/perTradeProfit[1],
+                          paste0(gainRange[2],"%")=r$weeklyIncomeTable$Gain[1]/perTradeProfit[2],
+                          paste0(gainRange[3],"%")=r$weeklyIncomeTable$Gain[1]/perTradeProfit[3])
   })
   
   output$tradeMessage<- renderUI({
-    txt<-paste()
+    txt<-paste("You must have at least",r$tradePlan[1,2],"successful trades to hit your weekly goal.")
     h4(txt)
   })
-  DT::renderDataTable(r$tradePlan)
+  
+  output$tradePlan<-DT::renderDataTable(r$tradePlan,options = list(dom = 'Bfrtip'),rownames = FALSE)
   
 
     
@@ -200,174 +204,33 @@ mod_GrowthRisk_server <- function(input, output, session, r){
   # )
   # Topics<-googlesheets4::read_sheet(ss = "1-4kwf6x4-zJC7JOKly-Wp4VZ47arooxO87PUTlOgI6I",sheet = "Topics")
 
-
-  output$email<-renderUI({
-    if (r$emailSubmit==0 & r$emailRecall==0) {
-      textInput(ns("voterEmail"),label="Need your email if you'd like to save this (optional):",value="")
-    } else {
-      NULL
-    }
-  })
-
-  
-  output$comment1<-renderUI({
-    if (r$uploadVote==0) {
-      textInput(ns("addComments"),"Any comments in reference to your vote?")
-    } else {
-      NULL
-    }
-  })
-  
-  output$selectCategories<-renderUI({
-    req(nchar(Cats[1])>0) 
-    l<-setNames(1:length(Cats),Cats)
-    print("category list")
-    print(l)
-    print(class(l))
-    if (r$uploadVote==0) {
-      radioButtons(ns("categoryChoice"),label = "Choose the category of articles to display:",
-                   choices = l,selected = 1)
-    } else {
-      NULL
-    }
-  })
-
-  observe({
-    r$selectedTopics<-unique(c(r$selectedTopics,as.numeric(input$topicVotes)))
-  })
-  
-  output$voteTopics<-renderUI({
-    req(nchar(Cats[1])>0)
-    if (r$uploadVote==0) {
-      if (!is.na(r$selectedTopics) && sum(r$selectedTopics %in% Topics$Index[Topics$Category==Cats[as.numeric(input$categoryChoice)]])>0) {
-        selectedTopics<-r$selectedTopics[r$selectedTopics %in% Topics$Index[Topics$Category==Cats[as.numeric(input$categoryChoice)]]]
-      } else {
-        selectedTopics<-NA
-      }
-      print("topic list")
-      ll<-setNames(Topics$Index[Topics$Category==Cats[as.numeric(input$categoryChoice)]],
-                  Topics$Topic[Topics$Category==Cats[as.numeric(input$categoryChoice)]])
-      print(ll)
-      print(class(ll))
-      checkboxGroupInput(ns("topicVotes"),label = "Check the articles you'd like to read:",
-                         choices = ll,
-                         selected = selectedTopics)
-    } else {
-      NULL 
-    }
-  })
-  
-  output$vClick<-renderUI({
-    if (r$v<1) {
-      actionButton(ns("uploadVote"),label = "Submit Vote!")
-    } else {
-      NULL
-    }
-  })
-    
-  output$votes<-renderUI({
-    req(length(r$selectedTopics)>0)
-    if (r$uploadVote==0) {
-      txt<-paste0("<ul>",paste0(paste0("<li>",Topics$Category[Topics$Index %in% r$selectedTopics],": ",
-                                  Topics$Topic[Topics$Index %in% r$selectedTopics]),collapse=""),
-             "</ul>")
-      HTML(txt)
-    } else {
-      NULL
-    }
-  })
-  
-  output$done<-renderUI({
-    req(r$uploadVote>0)
-      txt<-paste0("<ul>",paste0(paste0("<li>",Topics$Category[Topics$Index %in% r$selectedTopics],": ",
-                                       Topics$Topic[Topics$Index %in% r$selectedTopics]),collapse=""),
-                  "</ul>")
-      txt<-paste0("<h3>Thank you for submitting these votes!</h3><p>",txt,
-                  "<p><h3>If you'd like to tell me more, use the 'Leave A Note' form!</h3>
-                   <h3>Also, feel free to check out the results of voting!</h3>")
-    HTML(txt)
-  })
-  
-  #                  p()
-  observeEvent(input$uploadVote,{
-    print(input$uploadVote)
-    r$uploadVote<-input$uploadVote
-    if (length(r$selectedTopics)>0) {
-      Votes<-data.frame(#Category=Topics$Category[r$selectedTopics], Topic = Topics$Topic[r$selectedTopics],
-                        Index = Topics$Index[r$selectedTopics], User = input$voterEmail,
-                        Comment = input$addComments, Timestamp = Sys.time())
-      googlesheets4::sheet_append(data = Votes,ss="1-4kwf6x4-zJC7JOKly-Wp4VZ47arooxO87PUTlOgI6I",sheet = "Votes")
-      fct_readVotes()
-      r$selectedTopics<-c()
-      #hide("uploadVote")
-      #utils_disableActionButton("uploadVote",session)
-    }
-    r$v<-1
-  })
-
-  output$email2<-renderUI({
-    if (r$uploadStory==0) {
-      textInput(ns("noteEmail"),label = "Your email? (optional)",value = "")
-    } else {
-      NULL
-    }
-  })
-  
-  output$comment2<-renderUI({
-    if (r$uploadStory==0) {
-      textInput(ns("userStory"),label = "Let me know what topics you're thinking about:",value = "e.g. life, education, stats, money",width = '100%')
-    } else {
-      NULL
-    }
-  })
-  
-  output$sClick<-renderUI({
-    if (r$s<1) {
-      actionButton(ns("uploadStory"),label = "Submit!")
-    } else {
-      NULL
-    }
-  })
-  
-  output$thanks<-renderUI({
-    req(r$uploadStory>0)
-    if (r$uploadStory==1) {
-      txt<-paste0("<h2>Thank you for sharing!</h2>",txt,
-                  "<h3>If you'd like to vote for some topics you'd like to hear about,</h3>
-                   <h3>click on the previous tab or reload the page!</h3>
-                   <h3>Also, feel free to check out the results of the voting so far!</h3>")
-    }
-    HTML(txt)
-  })
-  
-  
-  observeEvent(input$uploadStory,{
-    print(input$uploadStory)
-    r$uploadStory<-input$uploadStory
-    story<-input$userStory
-    if (nchar(story)>0) {
-      Notes<-data.frame(User = input$noteEmail,Comment = story,Timestamp = Sys.time())
-      googlesheets4::sheet_append(data = Notes,ss="1-4kwf6x4-zJC7JOKly-Wp4VZ47arooxO87PUTlOgI6I",sheet = "Notes")
-      story<-""
-      #hide("uploadStory")
-      #utils_disableActionButton("uploadStory",session)
-    }
-    r$s<-1
-  })
-  
-  output$currentVotes<-renderPlot({
-    Results<-googlesheets4::read_sheet(ss = "1-4kwf6x4-zJC7JOKly-Wp4VZ47arooxO87PUTlOgI6I",sheet = "Topics")
-    Results<-Results[!is.na(Results$Votes),]
-    r$DataTable<-Results[order(-Results$Votes),c(1,2,3,4)]
-    barplot(setNames(object = Results$Votes,Results$Index),main="Current Votes on Topics (Indices)",xlab="Topic Index (see Table)",
-            ylab="Votes")
-  })
-  
-  output$resultsLegend<-DT::renderDataTable(r$DataTable,extensions=c('Scroller'),
-                                            options = list(dom = 'Bfrtip',
-                                                           scrollY = 500,
-                                                           scroller = TRUE,
-                                                           scrollX = TRUE),rownames = FALSE)
+  # output$sClick<-renderUI({
+  #   if (r$s<1) {
+  #     actionButton(ns("uploadStory"),label = "Submit!")
+  #   } else {
+  #     NULL
+  #   }
+  # })
+  # 
+  # observeEvent(input$uploadStory,{
+  #   print(input$uploadStory)
+  #   r$uploadStory<-input$uploadStory
+  #   story<-input$userStory
+  #   if (nchar(story)>0) {
+  #     Notes<-data.frame(User = input$noteEmail,Comment = story,Timestamp = Sys.time())
+  #     googlesheets4::sheet_append(data = Notes,ss="1-4kwf6x4-zJC7JOKly-Wp4VZ47arooxO87PUTlOgI6I",sheet = "Notes")
+  #     story<-""
+  #     #hide("uploadStory")
+  #     #utils_disableActionButton("uploadStory",session)
+  #   }
+  #   r$s<-1
+  # })
+  # 
+  # output$resultsLegend<-DT::renderDataTable(r$DataTable,extensions=c('Scroller'),
+  #                                           options = list(dom = 'Bfrtip',
+  #                                                          scrollY = 500,
+  #                                                          scroller = TRUE,
+  #                                                          scrollX = TRUE),rownames = FALSE)
   
   # output$LinkBox <- DT::renderDataTable({
   #   IE<-utils_createLink("https://ie.datamyx.com/","IntellidataExpress")
