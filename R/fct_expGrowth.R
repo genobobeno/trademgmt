@@ -1,7 +1,7 @@
-fct_expGrowth<-function(size,rate,weeks,dayWeek='d',friday=TRUE) {
+fct_expGrowth<-function(size,rate,periods,dayWeek='d',friday=TRUE) {
   if (dayWeek=="d") {
-    size*(1+rate/(4+friday))^((4+friday)*weeks)
+    size*(1+rate/(4+friday))^(periods)
   } else {
-    size*(1+rate)^(weeks)
+    size*(1+rate)^(periods)
   }
 }

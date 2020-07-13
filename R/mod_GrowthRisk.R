@@ -7,66 +7,85 @@
 #' @noRd 
 #'
 #' @importFrom shiny NS tagList 
-mod_SurveySB_ui <- function(id){
+mod_GrowthRiskSB_ui <- function(id){
   ns <- NS(id)
   tagList(
-    shinydashboard::sidebarMenu(id = "surveyMenu",
-                                shinydashboard::menuItem(tabName = "survey", text = "Take the Survey!",
-                                                         icon = icon(name = "tasks"),selected = TRUE),
-                                shinydashboard::menuItem(tabName = "results", text = "See Current Results",
-                                                         icon = icon(name = "chart-bar"))
+    shinydashboard::sidebarMenu(id = "tradeMgmtMenu",
+                                shinydashboard::menuItem(tabName = "growth", text = "Start Here With Growth",
+                                                         icon = icon(name = "money"),selected = TRUE),
+                                shinydashboard::menuItem(tabName = "risk", text = "Risk Management",
+                                                         icon = icon(name = "medkit"))
     )
   )
 }
 
-mod_SurveyBD_ui <- function(id){
+mod_GrowthRiskBD_ui <- function(id){
   ns <- NS(id)
   tagList(
-    tags$head(
-      tags$style(
-        HTML('#vClick{display: none;} 
-              #sClick{display: none;}')
-      )
-    ),
-    conditionalPanel("input.surveyMenu=='survey'",
-                     h2("Tell Me About The Content You'd Like To See!"),
-        shinydashboard::tabBox(width = 12,#height = "250px",
-            tabPanel(title = "Take My Survey",#icon = "check",
-                     fluidRow(column(4,
-                                     uiOutput(ns("email1")),
-                                     uiOutput(ns("selectCategories")),
-                                     uiOutput(ns("vClick"))
-                                     ),
-                              column(8,
-                                     uiOutput(ns("voteTopics")),
-                                     uiOutput(ns("comment1")),
-                                     hr(),
-                                     uiOutput(ns("votes"))
-                                     )
-                              ),
-                     fluidRow(column(12,
-                                     uiOutput(ns("done"))))
-                     ),
-            tabPanel(title = "Leave a Note!",#icon = "address-card",
-                     uiOutput(ns("email2")),
-                     uiOutput(ns("comment2")),
-                     uiOutput(ns("sClick")),
-                     uiOutput(ns("thanks"))
-                     )
-            )
-    ),
-    conditionalPanel("input.surveyMenu=='results'",
-                     plotOutput(ns("currentVotes")),
-                     DT::dataTableOutput(ns("resultsLegend")))
+    # tags$head(
+    #   tags$style(
+    #     HTML('#vClick{display: none;} 
+    #           #sClick{display: none;}')
+    #   )
+    # ),
+    conditionalPanel("input.tradeMgmtMenu=='growth'",
+        fluidRow(
+          shinydashboard::box(title = "Your Account Details:",width = 3,#height = "250px",
+                              uiOutput(ns("dAccountSize")), #numericInput(ns("accountSize"),label = "Size of Current Account:",value = 25000,min = 100,max = 5000000,step=100),
+                              uiOutput(ns("dExpectedGrowth")), #sliderInput(ns("expectedGrowth"),label = "The range of expected weekly profit (%):",min = 0,max = 100,step = .05,value = c(15,25)),
+                              uiOutput(ns("dWeeklyIncomeGoal")), #numericInput(ns("weeklyIncomeGoal"),label = "What is your weekly income goal?",value = 5000,min = 1000,max = 200000,step = 100)),
+                              uiOuput(ns("dFriday")) #checkboxInput(ns("friday"),label = "Do you intend to trade on Fridays?",value = TRUE)
+          ),
+          shinydashboard::tabBox(title = "Some Calculations:",width = 5,#height = "250px",
+                                 tabPanel(title = "Expectations",
+                                          uiOutput(ns("timeCalc")),
+                                          uiOutput(ns("weeklyAmountCalc"))
+                                 ),
+                                 tabPanel(title= "Amortized Weekly",
+                                          uiOutput("dLowHigh1"), #radioButtons(ns("lowHigh1"),label = "Do you want low or high win rate estimates?",choices = list(""))
+                                          DT::dataTableOutput(ns("weeklyIncomeTab"))
+                                 ),
+                                 tabPanel(title= "Amortized Daily",
+                                          uiOutput("dLowHigh2"), #radioButtons(ns("lowHigh2"),label = "Do you want low or high win rate estimates?",choices = list(""))
+                                          DT::dataTableOutput(ns("dailyIncomeTab"))
+                                 ),
+                                 tabPabel(title="Trade Plan",
+                                          numericInput(ns("numTrades"),"How many trades do you plan to trade each week?",value = 5,step=1,min = 1,max=25),
+                                          sliderInput(ns("percentGain"),"What's your expected gain in each trade (%)?",value = 20,step = 1,min = 1,max=100),
+                                          sliderInput(ns("percentWager"),"How much of your account do you want to use in each trade (%)?",value = 10,step = 1,min = 1,max=100),
+                                          uiOutput(ns("tradeMessage")), # h4(txt)
+                                          DT::dataTableOutput(ns("tradePlan"))
+                                          )
+          ),
+          shinydashboard::box(title = "The Math:",width = 4,#height = "250px",
+                              radioButtons(ns("dayWeek"),label = "Plot by Day or Week?",choices = list("Day"=1,"Week"=2),selected = 1),
+                              renderPlot(ns("accountGrowth")), #Account Size vs. Time
+                              renderPlot(ns("tradeSize")), #
+                              
+          ),
+          
+        ),
+        
+        #              uiOutput(ns("email2")),
+        #              uiOutput(ns("comment2")),
+        #              uiOutput(ns("sClick")),
+        #              uiOutput(ns("thanks"))
+        #              )
+        #     )
+    conditionalPanel("input.tradeMgmtMenu=='risk'",
+                     # plotOutput(ns("currentVotes")),
+                     # DT::dataTableOutput(ns("resultsLegend")))
     # conditionalPanel(condition="(input.uploadStory>0 | input.uploadVote>0) & input.surveyMenu!='results'",
     #                  h3("Thank You For The Sentiments!"),
-  )   
+    )
+  ) 
+  )
 }
 
 #' Survey Server Function
 #'
 #' @noRd 
-mod_Survey_server <- function(input, output, session, r){
+mod_GrowthRisk_server <- function(input, output, session, r){
   ns <- session$ns
   
   #options(gargle_oauth_cache = "/home/egeis/Documents/RProjects/.secrets",stringsAsFactors = FALSE,scipen=999)
@@ -77,36 +96,99 @@ mod_Survey_server <- function(input, output, session, r){
   #   cache = gargle::gargle_oauth_cache(),
   #   use_oob = gargle::gargle_oob_default()
   # )
-  print(dir())
-  print(gargle::gargle_oauth_cache())
+  r$accountSize<-25000
+  r$expectedGrowth<-c(15,25)
+  r$weeklyIncomeGoal<-5000  
+  r$friday<-TRUE
+  input$numTrades<-5
+  input$percentGain<-20
   
-  json<-gargle:::secret_read("buildaflame","gargle-testing.json")
-  # # gargle:::token_fetch(  path = rawToChar(json) )
-  googlesheets4::gs4_auth(
-    email = gargle::token_email(gargle:::token_fetch(  path = rawToChar(json) )),
-    path = rawToChar(json) ,
-    cache = gargle::gargle_oauth_cache(),
-    use_oob = gargle::gargle_oob_default()
-  )
+  output$dFriday<-renderUI({
+    checkboxInput(ns("friday"),label = "Do you intend to trade on Fridays?",value = r$friday)
+  })
+  output$dAccountSize<- renderUI({
+    numericInput(ns("accountSize"),label = "Size of Current Account:",value = r$accountSize,min = 100,max = 5000000,step=100)
+  })
+  output$dExpectedGrowth<- renderUI({
+    sliderInput(ns("expectedGrowth"),label = "The range of expected weekly profit (%):",min = 0,max = 100,step = .05,value = r$expectedGrowth)
+  })
+  output$dWeeklyIncomeGoal<- renderUI({
+    numericInput(ns("weeklyIncomeGoal"),label = "What is your weekly income goal?",value = r$weeklyIncomeGoal,min = 1000,max = 200000,step = 100)
+  })
+
+  # observe({
+  #   
+  # })
   
-  r$s <- r$v <- 0
-  r$selectedTopics<-c()  
-  r$uploadVote<-0
-  r$uploadStory<-0
-  Topics<-googlesheets4::read_sheet(ss = "1-4kwf6x4-zJC7JOKly-Wp4VZ47arooxO87PUTlOgI6I",sheet = "Topics")
-  Topics<-Topics[order(Topics$Index),]
-  #Votes<-googlesheets4::read_sheet(ss = "1-4kwf6x4-zJC7JOKly-Wp4VZ47arooxO87PUTlOgI6I",sheet = "Votes")
-  #Notes<-googlesheets4::read_sheet(ss = "1-4kwf6x4-zJC7JOKly-Wp4VZ47arooxO87PUTlOgI6I",sheet = "Notes")
+  output$dLowHigh1<-renderUI({
+    CH<-utils_createNumList(c(paste0(input$expectedGrowth[1],"%"),paste0(input$expectedGrowth[2],"%")))
+    radioButtons(ns("lowHigh1"),label = "Do you want low or high win rate estimates?",choices = CH )
+  })
+  output$dLowHigh2<-renderUI({
+    CH<-utils_createNumList(c(paste0(input$expectedGrowth[1],"%"),paste0(input$expectedGrowth[2],"%")))
+    radioButtons(ns("lowHigh2"),label = "Do you want low or high win rate estimates?",choices = CH )
+  })
   
-  Cats<-unique(Topics$Category)
-  Articles<-list()
-  for (i in Cats) {
-    Articles[[i]]<-setNames(object = 1:sum(Topics$Category==i),nm=Topics$Topic[Topics$Category==i])
-  }
+  observe({
+    t1<-ceiling(fct_timeForGrowth(input$accountSize,input$expectedGrowth[as.numeric(input$lowHigh1)]/100,input$weeklyIncomeGoal))
+    i1<-as.vector(sapply(1:t1,function(x) fct_expGrowth(input$accountSize,input$expectedGrowth[as.numeric(input$lowHigh1)]/100,x,"w",input$friday)))
+    t2<-ceiling(fct_timeForGrowth(input$accountSize,input$expectedGrowth[as.numeric(input$lowHigh1)]/100,input$weeklyIncomeGoal)*(4+input$friday))
+    i2<-as.vector(sapply(1:t2,function(x) fct_expGrowth(input$accountSize,input$expectedGrowth[as.numeric(input$lowHigh1)]/100,x,"d",input$friday)))
+    r$weeklyIncomeTable<-data.frame("Weeks"=1:t1,"BeginningAmount"=c(input$accountSize,i1[-length(i1)]),"Gain"=diff(c(input$accountSize,i1)),"EndAmount"=i1)
+    r$dailyIncomeTable<-data.frame("Days"=1:t2,"BeginningAmount"=c(input$accountSize,i2[-length(i2)]),"Gain"=diff(c(input$accountSize,i2)),"EndAmount"=i2)
+  })
+
+  output$timeCalc<-renderUI({
+    t1<-ceiling(fct_timeForGrowth(input$accountSize,input$expectedGrowth[1]/100,input$weeklyIncomeGoal))
+    t2<-ceiling(fct_timeForGrowth(input$accountSize,input$expectedGrowth[2]/100,input$weeklyIncomeGoal))
+    txt<-paste0("It will take between ",t2," and ",t1," weeks to reach your salary goal.")
+    h3(txt)
+  })
   
-  output$email1<-renderUI({
-    if (r$uploadVote==0) {
-      textInput(ns("voterEmail"),label="Your email? (optional)",value="")
+  output$weeklyAmountCalc<-renderUI({
+    m1<-round(input$accountSize*input$expectedGrowth[1]/100)
+    m2<-round(input$accountSize*input$expectedGrowth[2]/100)
+    txt<-paste0("In the first week, you'll need to make between $",m1," and $",m2,".")
+    h3(txt)
+  })
+  output$weeklyIncomeTable<-DT::renderDataTable(r$weeklyIncomeTable,extensions=c('Scroller'),
+                                                options = list(dom = 'Bfrtip',
+                                                               scrollY = 500,
+                                                               scroller = TRUE,
+                                                               scrollX = TRUE),rownames = FALSE)
+  output$dailyIncomeTable<-DT::renderDataTable(r$dailyIncomeTable,extensions=c('Scroller'),
+                                                options = list(dom = 'Bfrtip',
+                                                               scrollY = 500,
+                                                               scroller = TRUE,
+                                                               scrollX = TRUE),rownames = FALSE)
+  
+  observe({
+    winGain<-input$numTrades*input$percentGain/10$
+    
+  })
+  
+  numericInput(ns("numTrades"),"How many trades do you plan to trade each week?",value = 5,step=1,min = 1,max=25),
+  sliderInput(ns("percentGain"),"What's your expected gain in each trade (%)?",value = 20,step = 1,min = 1,max=100),
+  sliderInput(ns("percentWager"),"How much of your account do you want to use in each trade (%)?",value = 10,step = 1,min = 1,max=100),
+  uiOutput(ns("tradeMessage")), # h4(txt)
+  DT::dataTableOutput(ns("tradePlan"))
+  
+
+    
+  # json<-gargle:::secret_read("trademgmt","gargle-testing.json")
+  # # # gargle:::token_fetch(  path = rawToChar(json) )
+  # googlesheets4::gs4_auth(
+  #   email = gargle::token_email(gargle:::token_fetch(  path = rawToChar(json) )),
+  #   path = rawToChar(json) ,
+  #   cache = gargle::gargle_oauth_cache(),
+  #   use_oob = gargle::gargle_oob_default()
+  # )
+  # Topics<-googlesheets4::read_sheet(ss = "1-4kwf6x4-zJC7JOKly-Wp4VZ47arooxO87PUTlOgI6I",sheet = "Topics")
+
+
+  output$email<-renderUI({
+    if (r$emailSubmit==0 & r$emailRecall==0) {
+      textInput(ns("voterEmail"),label="Need your email if you'd like to save this (optional):",value="")
     } else {
       NULL
     }
