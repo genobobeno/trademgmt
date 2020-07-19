@@ -5,12 +5,18 @@
 #' @import shiny
 #' @noRd
 app_ui <- function(request) {
+  library(shinydashboard)
   tagList(
     # Leave this function for adding external resources
     golem_add_external_resources(),
     # List the first level UI elements here 
-    fluidPage(
-      h1("trademgmt")
+    shinydashboard::dashboardPage(
+      shinydashboard::dashboardHeader(title = "Trade Management" ),
+      shinydashboard::dashboardSidebar(
+        mod_GrowthRiskSB_ui("growth")),
+      shinydashboard::dashboardBody(
+        mod_GrowthRiskBD_ui("growth")
+      )
     )
   )
 }
