@@ -81,7 +81,7 @@ mod_GrowthRiskBD_ui <- function(id){
                         )),
                 column(5,
                         shinydashboard::box(title = "The Math:",width = 12,#height = "250px",
-                                            h3("The plot here is a nice visual of your overall timeline."),
+                                            h3("This plot is a nice visual of your overall timeline."),
                                             h5("NOTE: Again, this assumes you're meeting the weekly expectations set forth in the plan."),
                                             h5("Feel free to right-click on this graph and save it for yourself."),
                               plotOutput(ns("accountGrowth"))#, #Account Size vs. Time
@@ -266,6 +266,7 @@ mod_GrowthRisk_server <- function(input, output, session, r){
     i2<-sapply(1:(t1+XtraDays),function(x) fct_expGrowth(input$accountSize,input$expectedGrowth[2]/100,x,dw,input$friday))
     g1<-input$weeklyIncomeGoal/(input$expectedGrowth[1]/100)
     g2<-input$weeklyIncomeGoal/(input$expectedGrowth[2]/100)
+    par(mar=c(6,4,3,1))
     if (as.numeric(input$dayWeek)==1) {  
       plot(c(0,t1),c(0,g1*3),type="n",main="Account Growth Over Time",ylab="Account Size ($)",xaxt="n",xlab=NA)
       xloc<-1:ceiling(1.05*tLow)
@@ -306,6 +307,7 @@ mod_GrowthRisk_server <- function(input, output, session, r){
              pos = 2,las=2,col=c("red","green"), srt=90)
       }
       points(c(tLow,tHigh),c(g1,g2),pch=20,col="blue")
+      mtext("Geno Bo Beno's Trade Management Shiny App", side=1, line=4.5, adj=1, cex=0.5)
   })
   
   # output$tradeSize<- plotOutput({
@@ -508,13 +510,18 @@ mod_GrowthRisk_server <- function(input, output, session, r){
   output$tradeSeries<-renderPlot({
     req(input$runTrades)
     COLS<-rainbow(ncol(r$tradeSeries))
+    par(mar=c(6,4,3,1))
     plot(c(0,input$sampledTrades),c(0,max(r$tradeSeries)),type="n",main="Account Progression",xlab="Number of trades",ylab="Account Size")
     for (j in 1:ncol(r$tradeSeries)) lines(0:nrow(r$tradeSeries),c(input$initialSize,r$tradeSeries[,j]),col=COLS[j])
+    mtext("Geno Bo Beno's Trade Management Shiny App", side=1, line=4.5, adj=1, cex=0.5)
   })
 
   output$distribution<-renderPlot({
     req(length(r$aSize)>0)
+    par(mar=c(6,4,3,1))
     plot(density(r$aSize),main="Distribution of Possible Account Sizes",ylab="Probability Density",yaxt="n",xlab=paste0("Final Account Size (",input$sampledTrades," trades)"))
+    mtext("Geno Bo Beno's Trade Management Shiny App", side=1, line=4.5, adj=1, cex=0.5)
+    
   })
 
   

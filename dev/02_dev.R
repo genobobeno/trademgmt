@@ -19,6 +19,12 @@ usethis::use_package( "shinydashboard" )
 usethis::use_package( "DT" )
 usethis::use_package( "Hmisc" )
 usethis::use_package( "magrittr" )
+usethis::use_package("stringdist")
+usethis::use_package("googlesheets4")
+usethis::use_package("googledrive")
+usethis::use_package("gargle")
+usethis::use_package("sodium")
+usethis::use_package("shinyjs")
 
 
 ## Add modules ----

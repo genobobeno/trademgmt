@@ -2,7 +2,7 @@
 #' 
 #' @param request Internal parameter for `{shiny}`. 
 #'     DO NOT REMOVE.
-#' @import shiny
+#' @import shiny shinydashboard
 #' @noRd
 app_ui <- function(request) {
   library(shinydashboard)
@@ -11,7 +11,12 @@ app_ui <- function(request) {
     golem_add_external_resources(),
     # List the first level UI elements here 
     shinydashboard::dashboardPage(
-      shinydashboard::dashboardHeader(title = "Trade Management" ),
+      shinydashboard::dashboardHeader(title = "Trade Management",
+                                      dropdownMenu(type = "messages",
+                                                   messageItem(
+                                                     from = "Geno",
+                                                     message = "Email me: eugene.geis@gmail.com"
+                                                   ))),
       shinydashboard::dashboardSidebar(
         mod_GrowthRiskSB_ui("growth")),
       shinydashboard::dashboardBody(
