@@ -103,7 +103,7 @@ mod_GrowthRiskBD_ui <- function(id){
                                          h5("Also, your edge should include a typical reward-to-risk ratio. Are you looking to gain $2 for every $1 of risk?"),
                                          sliderInput(ns("rewardRisk"),label = "Reward to Risk Ratio?", min=0, max=5, step=0.1, value = 2),
                                          h5("And finally, how much of your account will you risk in each trade?"),
-                                         sliderInput(ns("riskAmount"),label = "Risk in Each Trade (%)?", min=0, max=50, step=0.1, value = 10)
+                                         sliderInput(ns("riskAmount"),label = "Risk in Each Trade (%)?", min=0, max=50, step=1, value = 10)
                      ),
                      shinydashboard::box(title = "Let's Run Some Samples",width=3,
                                          h3("Given the probabilities you just set up, we can run some simulations!"),
@@ -272,7 +272,7 @@ mod_GrowthRisk_server <- function(input, output, session, r){
       xloc<-xloc[xloc%%MOD==0]
       axis(1,at=xloc,labels = paste("Week",1:length(xloc)),las=2)
     } else {
-      plot(c(0,t1),c(0,g1*3),type="n",main="Account Growth Over Time",ylab="Account Size ($)",xaxt="n",xlab="Weeks")
+      plot(c(0,t1),c(0,g1*3),type="n",main="Account Growth Over Time",ylab="Account Size ($)",xlab="Weeks")
     }
     # Day
       # tLow<-ceiling(fct_timeForGrowth(input$accountSize,input$expectedGrowth[1]/100,input$weeklyIncomeGoal)*(4+input$friday))
@@ -406,7 +406,7 @@ mod_GrowthRisk_server <- function(input, output, session, r){
 
     if (grepl("@",tolower(input$email)) & grepl("\\.",tolower(input$email)) & nchar(tolower(input$email))>5) { 
       SaveData=data.frame(email=tolower(values$email),accountSize=values$accountSize,percentGain=values$percentGain,
-                          percentWager=values$percentWager,expectedGrowthLow=values$expectedGrowth[1],
+                          dayWeek=values$dayWeek,percentWager=values$percentWager,expectedGrowthLow=values$expectedGrowth[1],
                           expectedGrowthHigh=values$expectedGrowth[2],weeklyIncomeGoal=values$weeklyIncomeGoal,
                           friday=values$friday,timeStamp=as.character(Sys.time()))
       print(paste(input$email,input$accountSize,Sys.time()))
